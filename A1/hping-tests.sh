@@ -12,10 +12,10 @@ hping3 192.168.0.103 -s 53 -p 1024 -c 3
 hping3 127.0.0.1 -c 3 #should return RA as there is no service behind localhost
 
 #Test DNS
-hping3 192.168.0.1 -udp -p 53 -c 3 #DNS_T1
-hping3 192.168.0.101 -udp -s 53 -p 1035 #DNS_T2
+hping3 192.168.0.1 --udp -s 1035 -p 53 -c 3 #DNS_T1
+hping3 192.168.0.101 --udp -s 53 -p 1035 -c 3 #DNS_T2
 hping3 192.168.0.1 -p 53 -c 3 #DNS_T3
-hping3 192.168.0.101 -s 53 -p 1035 #DNS_T4
+hping3 192.168.0.101 -s 53 -p 1035 -c 3 #DNS_T4
 
 # Test SSH Can Get Through
 # -- SSH with SYN
@@ -26,8 +26,8 @@ hping3 192.168.0.101 -SA -s 22 -p 1035 -c 3 #SSH_T1 - SHOULD RETURN R
 
 hping3 192.168.0.101 -S -s 1035 -p 22 -c 3 #SSH_T2 - should pass
 
-hping3 192.168.0.186 -S -s 1035 -p 22 ##SH_T3 - should pass
-hping3 192.168.0.186 -SA -s 22 -p 1035 ##SSH_T4 - should pass - does go through firewall
+hping3 192.168.0.186 -S -s 1035 -p 22 #SH_T3 - should pass
+hping3 192.168.0.186 -SA -s 22 -p 1035 #SSH_T4 - should pass - does go through firewall
 
 #Test HTTP Can Get Through
 hping3  192.168.0.101 -S -s 80 -p 80 -c 3 #HTTP_T1 - should fail
