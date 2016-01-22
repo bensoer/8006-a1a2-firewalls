@@ -134,23 +134,23 @@ $IPTABLES -N http_input_traffic
 
 # -- -- Explicit drop of Http to dest port 80 from source ports less than 1024
 $IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --dport 80 --sport $PRIV_PORTS #accounting
-$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --dport 80 --sport $PRIV_PORTS -j DROP
+$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --dport 80 --sport $PRIV_PORTS -j DROP #HTTP_T1
 
 $IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --dport 443 --sport $PRIV_PORTS #accounting
-$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --dport 443 --sport $PRIV_PORTS -j DROP
+$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --dport 443 --sport $PRIV_PORTS -j DROP #HTTP_T2
 
 # -- -- i think this one here is basicalyt he inverse of the above rule
 $IPTABLES -A http_input_traffic -i $IINTERNET -p tcp ! --syn --sport 80 -d $IPADDR --dport $UNPRIV_PORTS #accounting
-$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp ! --syn --sport 80 -d $IPADDR --dport $UNPRIV_PORTS -j ACCEPT
+$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp ! --syn --sport 80 -d $IPADDR --dport $UNPRIV_PORTS -j ACCEPT #HTTP_T3
 
 $IPTABLES -A http_input_traffic -i $IINTERNET -p tcp ! --syn --sport 443 -d $IPADDR --dport $UNPRIV_PORTS #accounting
-$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp ! --syn --sport 443 -d $IPADDR --dport $UNPRIV_PORTS -j ACCEPT
+$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp ! --syn --sport 443 -d $IPADDR --dport $UNPRIV_PORTS -j ACCEPT #HTTP_T4
 
 $IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --sport $UNPRIV_PORTS -d $IPADDR --dport 80 #accounting
-$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --sport $UNPRIV_PORTS -d $IPADDR --dport 80 -j ACCEPT
+$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --sport $UNPRIV_PORTS -d $IPADDR --dport 80 -j ACCEPT #HTTP_T5
 
 $IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --sport $UNPRIV_PORTS -d $IPADDR --dport 443 #accounting
-$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --sport $UNPRIV_PORTS -d $IPADDR --dport 443 -j ACCEPT
+$IPTABLES -A http_input_traffic -i $IINTERNET -p tcp --sport $UNPRIV_PORTS -d $IPADDR --dport 443 -j ACCEPT #HTTP_T6
 
 echo "HTTP Input Chain Created"
 
@@ -163,16 +163,16 @@ echo "HTTP Input Settings Complete"
 $IPTABLES -N http_output_traffic
 
 $IPTABLES -A http_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport $UNPRIV_PORTS --dport 80 #accounting
-$IPTABLES -A http_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport $UNPRIV_PORTS --dport 80 -j ACCEPT
+$IPTABLES -A http_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport $UNPRIV_PORTS --dport 80 -j ACCEPT #HTTP_T7
 
 $IPTABLES -A http_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport $UNPRIV_PORTS --dport 443 #accounting
-$IPTABLES -A http_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport $UNPRIV_PORTS --dport 443 -j ACCEPT
+$IPTABLES -A http_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport $UNPRIV_PORTS --dport 443 -j ACCEPT #HTTP_T8
 
 $IPTABLES -A http_output_traffic -o $IINTERNET -p tcp ! --syn -s $IPADDR --sport 80 --dport $UNPRIV_PORTS #accounting
-$IPTABLES -A http_output_traffic -o $IINTERNET -p tcp ! --syn -s $IPADDR --sport 80 --dport $UNPRIV_PORTS -j ACCEPT
+$IPTABLES -A http_output_traffic -o $IINTERNET -p tcp ! --syn -s $IPADDR --sport 80 --dport $UNPRIV_PORTS -j ACCEPT #HTTP_T9
 
 $IPTABLES -A http_output_traffic -o $IINTERNET -p tcp ! --syn -s $IPADDR --sport 443 --dport $UNPRIV_PORTS #accounting
-$IPTABLES -A http_output_traffic -o $IINTERNET -p tcp ! --syn -s $IPADDR --sport 443 --dport $UNPRIV_PORTS -j ACCEPT
+$IPTABLES -A http_output_traffic -o $IINTERNET -p tcp ! --syn -s $IPADDR --sport 443 --dport $UNPRIV_PORTS -j ACCEPT #HTTP_T10
 
 echo "HTTP Output Chain Created"
 
