@@ -65,11 +65,11 @@ echo "Loopback Settings Set"
 # Enable DNS
 
 # -- For UDP DNS Requests
-$IPTABLES -A OUTPUT -o $IINTERNET -p udp -s $IPADDR --sport $UNPRIV_PORTS --dport 53 -j ACCEPT
-$IPTABLES -A INPUT -i $IINTERNET -p udp -d $IPADDR --sport 53 --dport $UNPRIV_PORTS -j ACCEPT
+$IPTABLES -A OUTPUT -o $IINTERNET -p udp -s $IPADDR --sport $UNPRIV_PORTS --dport 53 -j ACCEPT #DNS_T1
+$IPTABLES -A INPUT -i $IINTERNET -p udp -d $IPADDR --sport 53 --dport $UNPRIV_PORTS -j ACCEPT #DNS_T2
 # -- In case there is error and must use TCP
-$IPTABLES -A OUTPUT -o $IINTERNET -p tcp -s $IPADDR --sport $UNPRIV_PORTS --dport 53 -j ACCEPT
-$IPTABLES -A INPUT -i $IINTERNET -p tcp -d $IPADDR --sport 53 --dport $UNPRIV_PORTS -j ACCEPT
+$IPTABLES -A OUTPUT -o $IINTERNET -p tcp -s $IPADDR --sport $UNPRIV_PORTS --dport 53 -j ACCEPT #DNS_T3
+$IPTABLES -A INPUT -i $IINTERNET -p tcp -d $IPADDR --sport 53 --dport $UNPRIV_PORTS -j ACCEPT #DNS_T4
 
 echo "DNS Settings Complete"
 
@@ -97,10 +97,10 @@ echo "DHCP Settings Complete"
 $IPTABLES -N ssh_input_traffic
 
 $IPTABLES -A ssh_input_traffic -i $IINTERNET -p tcp ! --syn --sport 22 -d $IPADDR --dport $SSH_PORTS #accounting
-$IPTABLES -A ssh_input_traffic -i $IINTERNET -p tcp ! --syn --sport 22 -d $IPADDR --dport $SSH_PORTS -j ACCEPT
+$IPTABLES -A ssh_input_traffic -i $IINTERNET -p tcp ! --syn --sport 22 -d $IPADDR --dport $SSH_PORTS -j ACCEPT #SSH_T1
 
 $IPTABLES -A ssh_input_traffic -i $IINTERNET -p tcp -d $IPADDR --sport $SSH_PORTS --dport 22 #accounting
-$IPTABLES -A ssh_input_traffic -i $IINTERNET -p tcp -d $IPADDR --sport $SSH_PORTS --dport 22 -j ACCEPT
+$IPTABLES -A ssh_input_traffic -i $IINTERNET -p tcp -d $IPADDR --sport $SSH_PORTS --dport 22 -j ACCEPT #SSH_T2
 
 
 echo "SSH Input Chain Created"
@@ -114,11 +114,11 @@ echo "SSH Input Settings Complete"
 # -- SSH Output Traffic
 $IPTABLES -N ssh_output_traffic
 
-$IPTABLES -A ssh_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport $SSH_PORTS --dport 22 -m state --state NEW #accounting
-$IPTABLES -A ssh_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport $SSH_PORTS --dport 22 -m state --state NEW -j ACCEPT
+$IPTABLES -A ssh_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport $SSH_PORTS --dport 22 #accounting
+$IPTABLES -A ssh_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport $SSH_PORTS --dport 22 -j ACCEPT #SSH_T3
 
 $IPTABLES -A ssh_output_traffic -o $IINTERNET -p tcp ! --syn -s $IPADDR --sport 22 --dport $SSH_PORTS #accounting
-$IPTABLES -A ssh_output_traffic -o $IINTERNET -p tcp -s $IPADDR --sport 22 --dport $SSH_PORTS -j ACCEPT
+$IPTABLES -A ssh_output_traffic -o $IINTERNET -p tcp ! --syn -s $IPADDR --sport 22 --dport $SSH_PORTS -j ACCEPT #SSH_T4
 
 echo "SSH Output Chain Created"
 
