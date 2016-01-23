@@ -1,0 +1,9 @@
+Internet Systems Consortium DHCP Client 4.2.6
+Copyright 2004-2014 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+
+Listening on LPF/eth0/b8:27:eb:75:d6:99
+Sending on   LPF/eth0/b8:27:eb:75:d6:99
+Sending on   Socket/fallback
+DHCPRELEASE on eth0 to 192.168.0.1 port 67 (xid=0x357d175c)
