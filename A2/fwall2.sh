@@ -5,6 +5,7 @@
 # The IP of the DHCP server - may or may not need ?
 DHCP_SERVER="192.168.0.1"
 
+# --  ADAPTORS  --
 # The adaptor for the internal network
 IINTERNAL_NET=""
 # The adaptor for the exernal network
@@ -12,13 +13,23 @@ IEXTERNAL_NET=""
 # The loopback adaptor
 ILOOPBACK="lo"
 
-IPTABLES="/sbin/iptables"
+# --  IP ADDRESSES  --
 
-# The firewall workstation's ip address
-IPADDR="192.168.0.101"
+INTERNAL_IP=""
+GATEWAY_IP=""
+
+# -- SERVICES/PORTS  --
 
 # Valid SSH Client Side Ports
-SSH_PORTS="1020:65535"
+VALID_SSH_PORTS="1020:65535"
+VALID_TCP_PORTS=""
+VALID_UDP_PORTS=""
+# use bash array syntax: ( 8 12 16 )
+VALID_ICMP_NUMBERS=()
+
+# --  IPTABLES  --
+
+IPTABLES="/sbin/iptables"
 
 echo "User Defined Variables Defined"
 
@@ -61,6 +72,27 @@ echo "Defaulkt Policies Set"
 # Enable Loopback for safekeeping
 $IPTABLES -A INPUT -i $ILOOPBACK -j ACCEPT
 $IPTABLES -A OUTPUT -o $ILOOPBACK -j ACCEPT
+
+echo "Loopback Policy Complete"
+
+# Do not accept any packets with a source address from the outside matching your internal network
+$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $INTERNAL_IP -s $INTERNAL_IP -j DROP
+
+# Inbound/Outbound TCP packets on allowed ports
+$IPTABLES -A FORWARD -p tcp -m multiport --source-port $VALID_TCP_PORTS -j ACCEPT
+$IPTABLES -A FORWARD -p tcp -m multiport --destination-port $VALID_TCP_PORTS -j ACCEPT
+
+# Inbound/Outbound UDP packets on allowed ports
+$IPTABLES -A FORWARD -p udp -m multiport --source-port $VALID_UDP_PORTS -j ACCEPT
+$IPTABLES -A FORWARD -p udp -m multiport --destination-port $VALID_UDP_PORTS -j ACCEPT
+
+# Inbound/Outbound ICMP packets based on type numbers
+for i in $VALID_ICMP_NUMBERS
+do
+    $IPTABLES -A FORWARD -p icmp --icmp-type $i -j ACCEPT
+done
+
+
 
 
 
