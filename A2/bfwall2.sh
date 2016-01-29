@@ -133,7 +133,7 @@ echo "TCP Rules Configured"
 
 #OUTBOUND
 $IPTABLES -A FORWARD -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_DEST_PORTS -j is_new_and_established
-$IPTABLES -A FORWARD -p udp -i $IEXTERNALL_NET -m multiport --source-ports $VALID_UDP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+$IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
 #INBOUND
 
 
