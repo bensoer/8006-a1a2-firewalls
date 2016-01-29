@@ -27,7 +27,8 @@ VALID_SSH_PORTS="1020:65535"
 
 VALID_TCP_DEST_PORTS="80,443,53,22"
 
-VALID_UDP_DEST_PORTS="53"
+VALID_UDP_OUTBOUND_PORTS="53"
+VALID_UDP_INBOUND_PORTS=""
 
 # Set to 1 to explicitly deny telnet port 23 from communicating through the firewall server
 NOTELNET=1
@@ -109,31 +110,39 @@ $IPTABLES -A is_established -p udp -m state --state ESTABLISHED -j ACCEPT
 echo "Is Established Chain Created"
 
 
-# Do not accept any packets with a source address from the outside matching your internal network
-#$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
-
 # Inbound/Outbound TCP packets on allowed ports
 # Accept all TCP packets that belong to an existing connection (on allowed ports).
 
 #OUTBOUND
 $IPTABLES -A FORWARD -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
+$IPTABLES -A FORWARD -p tcp --fragment -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
+
 $IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+$IPTABLES -A FORWARD -p tcp --fragment -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
 #INBOUND
 $IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
+$IPTABLES -A FORWARD -p tcp --fragment -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
+
 $IPTABLES -A FORWARD -p tcp -i $IINTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+$IPTABLES -A FORWARD -p tcp --fragment -i $IINTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
 
 echo "TCP Rules Configured"
 
 
-#$IPTABLES -A FORWARD -p tcp -m multiport --destination-port $VALID_TCP_PORTS -j ACCEPT
-
 # Inbound/Outbound UDP packets on allowed ports
 
 #OUTBOUND
-$IPTABLES -A FORWARD -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_DEST_PORTS -j is_new_and_established
-$IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
-#INBOUND
+$IPTABLES -A FORWARD -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_OUTBOUND_PORTS -j is_new_and_established
+$IPTABLES -A FORWARD -p udp --fragment -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_OUTBOUND_PORTS -j is_new_and_established
 
+$IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+$IPTABLES -A FORWARD -p udp --fragment -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+#INBOUND
+$IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_INBOUND_PORTS -j is_new_and_established
+$IPTABLES -A FORWARD -p udp --fragment -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_INBOUND_PORTS -j is_new_and_established
+
+$IPTABLES -A FORWARD -p udp -i $IINTERNAL_NET -m multiport --source-ports $VALID_UDP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+$IPTABLES -A FORWARD -p udp --fragment -i $IINTERNAL_NET -m multiport --source-ports $VALID_UDP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
 
 echo "UDP Rules Configured"
 
@@ -147,8 +156,11 @@ echo "ICMP Rules Configured"
 
 # You must ensure the you reject those connections that are coming the “wrong” way (i.e., inbound SYN packets to high ports).
 
-# Accept fragments.
 
+
+# Do not accept any packets with a source address from the outside matching your internal network
+$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
+$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $GATEWAY_INTERNAL_IP -j DROP
 
 echo "Checking Whether to Block SYN or FIN"
 #Drop all TCP packets with the SYN and FIN bit set.
