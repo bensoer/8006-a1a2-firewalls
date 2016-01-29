@@ -90,6 +90,8 @@ $IPTABLES --table nat --append POSTROUTING --out-interface $IEXTERNAL_NET -j MAS
 #route all data to the internal system
 $IPTABLES --table nat -A PREROUTING -i $IEXTERNAL_NET -j DNAT --to-destination $INTERNAL_IP
 echo "> NAT Connections Configured"
+echo "Default Policies Set"
+
 
 #For FTP and SSH services, set control connections to "Minimum Delay" and FTP data to "Maximum Throughput".
 $IPTABLES --table mangle -A PREROUTING -o $IEXTERNAL_NET --dport 22 -j TOS --set-tos minimize-delay
@@ -102,8 +104,8 @@ $IPTABLES --table mangle -A POSTROUTING -i $IEXTERNAL_NET -m multiport --destina
 $IPTABLES --table mangle -A PREROUTING -o $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
 $IPTABLES --table mangle -A POSTROUTING -i $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
 
+echo "TOS Rules Configured"
 
-echo "Default Policies Set"
 # Enable Loopback for safekeeping
 $IPTABLES -A INPUT -i $ILOOPBACK -j ACCEPT
 $IPTABLES -A OUTPUT -o $ILOOPBACK -j ACCEPT
@@ -122,49 +124,73 @@ $IPTABLES -A is_established -p udp -m state --state ESTABLISHED -j ACCEPT
 
 echo "Is Established Chain Created"
 
+# Do not accept any packets with a source address from the outside matching your internal network
+$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
+$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $GATEWAY_INTERNAL_IP -j DROP
+
+echo "Explcit Denial of External Traffic Matching Internal Traffic IP's"
+
 
 # Inbound/Outbound TCP packets on allowed ports
 # Accept all TCP packets that belong to an existing connection (on allowed ports).
 
+$IPTABLES -N tcp_traffic
+
 #OUTBOUND
-$IPTABLES -A FORWARD -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
-$IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+$IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
+$IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
 
 #INBOUND
-$IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
-$IPTABLES -A FORWARD -p tcp -i $IINTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+$IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
+$IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+
+echo "TCP Traffic Chain Created"
+
+
+$IPTABLES -A FORWARD -p tcp -j tcp_traffic
 
 echo "TCP Rules Configured"
 
 
 # Inbound/Outbound UDP packets on allowed ports
 
+$IPTABLES -N udp_traffic
+
 #OUTBOUND
-$IPTABLES -A FORWARD -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_OUTBOUND_PORTS -j is_new_and_established
-$IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+$IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_OUTBOUND_PORTS -j is_new_and_established
+$IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
 #INBOUND
-$IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_INBOUND_PORTS -j is_new_and_established
-$IPTABLES -A FORWARD -p udp -i $IINTERNAL_NET -m multiport --source-ports $VALID_UDP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+$IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_INBOUND_PORTS -j is_new_and_established
+$IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $VALID_UDP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+
+echo "UDP Traffic Chain Created"
+
+$IPTABLES -A FORWARD -p udp -j udp_traffic
 
 echo "UDP Rules Configured"
+
+$IPTABLES -N icmp_traffic
 
 # Inbound/Outbound ICMP packets based on type numbers
 for i in $VALID_ICMP_NUMBERS
 do
-    $IPTABLES -A FORWARD -p icmp --icmp-type $i -j ACCEPT
+    $IPTABLES -A icmp_traffic -p icmp --icmp-type $i -j ACCEPT
 done
+
+echo "ICMP Taffic Chain Created"
+
+$IPTABLES -A FORWARD -p icmp -j icmp_traffic
 
 echo "ICMP Rules Configured"
 
 # You must ensure the you reject those connections that are coming the “wrong” way (i.e., inbound SYN packets to high ports).
 
+
 # Accept fragments
 $IPTABLES -A FORWARD -p udp --fragment -j ACCEPT
 $IPTABLES -A FORWARD -p tcp --fragment -j ACCEPT
 
-# Do not accept any packets with a source address from the outside matching your internal network
-$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
-$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $GATEWAY_INTERNAL_IP -j DROP
+
 
 echo "Checking Whether to Block SYN or FIN"
 #Drop all TCP packets with the SYN and FIN bit set.
