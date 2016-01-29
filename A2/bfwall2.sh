@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # User Configuration
 
@@ -68,9 +68,9 @@ $IPTABLES --policy INPUT DROP
 $IPTABLES --policy OUTPUT DROP
 $IPTABLES --policy FORWARD DROP
 
-$IPTABLES -t nat --policy PREROUTING DROP
-$IPTABLES -t nat --policy OUTPUT DROP
-$IPTABLES -t nat --policy POSTROUTING DROP
+#$IPTABLES -t nat --policy PREROUTING DROP
+#$IPTABLES -t nat --policy OUTPUT DROP
+#$IPTABLES -t nat --policy POSTROUTING DROP
 
 # -- No mangle needed, this intercepts data, dropping here will drop it in between
 #$IPTABLES -t mangle --policy PREROUTING DROP
