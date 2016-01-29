@@ -26,9 +26,9 @@ GATEWAY_IP="192.168.0.187"
 VALID_SSH_PORTS="1020:65535"
 
 # valid tcp connections to internal
-VALID_TCP_INBOUND_PORTS="80,443,53,22"
+VALID_TCP_INBOUND_PORTS="80,443,53,22,21"
 # valid tcp connections from internal
-VALID_TCP_OUTBOUND_PORTS="80,443,53,22"
+VALID_TCP_OUTBOUND_PORTS="80,443,53,22,21"
 
 #valid udp connections to internal
 VALID_UDP_OUTBOUND_PORTS="53"
@@ -47,7 +47,7 @@ EXPLICIT_INVALID_UDP_PORTS="32768:32775,137:139"
 FTP_DATA_PORTS="20"
 
 # use bash array syntax: ( 8 12 16 )
-VALID_ICMP_NUMBERS=()
+VALID_ICMP_NUMBERS=(8 0)
 
 # --  IPTABLES  --
 
@@ -129,12 +129,44 @@ $IPTABLES -A is_established -p udp -m state --state ESTABLISHED -j ACCEPT
 
 echo "Is Established Chain Created"
 
+
+# -- EXPLICIT DENIALS --
+
 # Do not accept any packets with a source address from the outside matching your internal network
 $IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
 $IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $GATEWAY_INTERNAL_IP -j DROP
 
 echo "Explcit Denial of External Traffic Matching Internal Traffic IP's"
 
+
+echo "Checking Whether to Block SYN or FIN"
+#Drop all TCP packets with the SYN and FIN bit set.
+if [ $DROPSYNFIN -eq 1 ]
+then
+    echo "Blocking SYN and FIN Packets"
+    $IPTABLES -A FORWARD -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP #more vague but will effect better
+fi
+
+echo "Checking Whether to Block Telnet Packets"
+#Do not allow Telnet packets at all.
+if [ $NOTELNET -eq 1 ]
+then
+    echo "Blocking Telnet Packets"
+    $IPTABLES -A FORWARD -p tcp --source-port 23 -j DROP
+    $IPTABLES -A FORWARD -p tcp --destination-port 23 -j DROP
+fi
+
+echo "Checking Whether to Explicitly Block Ports"
+#Block all external traffic directed to ports 32768 – 32775, 137 – 139, TCP ports 111 and 515.
+if [ $PORTBLOCK -eq 1 ]
+then
+    echo "Blocking Explicit Ports"
+    $IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_TCP_PORTS -j DROP
+    $IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_UDP_PORTS -j DROP
+fi
+
+
+# -- TCP --
 
 # Inbound/Outbound TCP packets on allowed ports
 # Accept all TCP packets that belong to an existing connection (on allowed ports).
@@ -161,6 +193,8 @@ echo "TCP Traffic Chain Created"
 $IPTABLES -A FORWARD -p tcp -j tcp_traffic
 
 echo "TCP Rules Configured"
+
+# -- UDP --
 
 
 # Inbound/Outbound UDP packets on allowed ports
@@ -190,9 +224,9 @@ echo "UDP Rules Configured"
 $IPTABLES -N icmp_traffic
 
 # Inbound/Outbound ICMP packets based on type numbers
-for i in $VALID_ICMP_NUMBERS
+for TYPE in ${VALID_ICMP_NUMBERS[@]}
 do
-    $IPTABLES -A icmp_traffic -p icmp --icmp-type $i -j ACCEPT
+    $IPTABLES -A icmp_traffic -p icmp --icmp-type $TYPE -j ACCEPT
 done
 
 echo "ICMP Taffic Chain Created"
@@ -210,31 +244,7 @@ $IPTABLES -A FORWARD -p tcp --fragment -j ACCEPT
 
 
 
-echo "Checking Whether to Block SYN or FIN"
-#Drop all TCP packets with the SYN and FIN bit set.
-if [ $DROPSYNFIN -eq 1 ]
-then
-    echo "Blocking SYN and FIN Packets"
-    $IPTABLES -A FORWARD -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP #more vague but will effect better
-fi
 
-echo "Checking Whether to Block Telnet Packets"
-#Do not allow Telnet packets at all.
-if [ $NOTELNET -eq 1 ]
-then
-    echo "Blocking Telnet Packets"
-    $IPTABLES -A FORWARD -p tcp --source-port 23 -j DROP
-    $IPTABLES -A FORWARD -p tcp --destination-port 23 -j DROP
-fi
-
-echo "Checking Whether to Explicitly Block Ports"
-#Block all external traffic directed to ports 32768 – 32775, 137 – 139, TCP ports 111 and 515.
-if [ $PORTBLOCK -eq 1 ]
-then
-    echo "Blocking Explicit Ports"
-    $IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_TCP_PORTS -j DROP
-    $IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_UDP_PORTS -j DROP
-fi
 
 
 

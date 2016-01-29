@@ -8,12 +8,12 @@ echo "1) From The Firewall Machine"
 echo "2) From The Internal Machine"
 
 read ANSWER returnKey
-if [ $ANSWER -eq 1]
+if [ $ANSWER -eq 1 ]
 then
     echo "Now Executing testfromexternal Tests"
     ./testfromexternal.sh
 fi
-if [ $ANSWER -eq 2]
+if [ $ANSWER -eq 2 ]
 then
     echo "Now Executing testfrominternal Tests"
     ./testfrominternal.sh
