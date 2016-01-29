@@ -94,15 +94,15 @@ echo "Default Policies Set"
 
 
 #For FTP and SSH services, set control connections to "Minimum Delay" and FTP data to "Maximum Throughput".
-$IPTABLES --table mangle -A PREROUTING -p tcp -o $IEXTERNAL_NET --destination-port 22 -j TOS --set-tos minimize-delay
-$IPTABLES --table mangle -A POSTROUTING -p tcp -i $IEXTERNAL_NET --destination-port 22 -j TOS --set-tos minimize-delay
-$IPTABLES --table mangle -A PREROUTING -p tcp -o $IEXTERNAL_NET --source-port 22 -j TOS --set-tos minimize-delay
-$IPTABLES --table mangle -A POSTROUTING -p tcp -i $IEXTERNAL_NET --source-port 22 -j TOS --set-tos minimize-delay
+$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET --destination-port 22 -j TOS --set-tos minimize-delay
+$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET --destination-port 22 -j TOS --set-tos minimize-delay
+$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET --source-port 22 -j TOS --set-tos minimize-delay
+$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET --source-port 22 -j TOS --set-tos minimize-delay
 
-$IPTABLES --table mangle -A PREROUTING -p tcp -o $IEXTERNAL_NET -m multiport --destination-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
-$IPTABLES --table mangle -A POSTROUTING -p tcp -i $IEXTERNAL_NET -m multiport --destination-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
-$IPTABLES --table mangle -A PREROUTING -p tcp -o $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
-$IPTABLES --table mangle -A POSTROUTING -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
+$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET -m multiport --destination-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
+$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET -m multiport --destination-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
+$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
+$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
 
 echo "TOS Rules Configured"
 
