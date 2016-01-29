@@ -39,6 +39,8 @@ PORTBLOCK=1
 EXPLICIT_INVALID_TCP_PORTS="32768:32775,137:139,111,515"
 EXPLICIT_INVALID_UDP_PORTS="32768:32775,137:139"
 
+FTP_DATA_PORTS="20"
+
 # use bash array syntax: ( 8 12 16 )
 VALID_ICMP_NUMBERS=()
 
@@ -88,6 +90,17 @@ $IPTABLES --table nat --append POSTROUTING --out-interface $IEXTERNAL_NET -j MAS
 #route all data to the internal system
 $IPTABLES --table nat -A PREROUTING -i $IEXTERNAL_NET -j DNAT --to-destination $INTERNAL_IP
 echo "> NAT Connections Configured"
+
+#For FTP and SSH services, set control connections to "Minimum Delay" and FTP data to "Maximum Throughput".
+$IPTABLES --table mangle -A PREROUTING -o $IEXTERNAL_NET --dport 22 -j TOS --set-tos minimize-delay
+$IPTABLES --table mangle -A POSTROUTING -i $IEXTERNAL_NET --dport 22 -j TOS --set-tos minimize-delay
+$IPTABLES --table mangle -A PREROUTING -o $IEXTERNAL_NET --sport 22 -j TOS --set-tos minimize-delay
+$IPTABLES --table mangle -A POSTROUTING -i $IEXTERNAL_NET --sport 22 -j TOS --set-tos minimize-delay
+
+$IPTABLES --table mangle -A PREROUTING -o $IEXTERNAL_NET -m multiport --destination-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
+$IPTABLES --table mangle -A POSTROUTING -i $IEXTERNAL_NET -m multiport --destination-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
+$IPTABLES --table mangle -A PREROUTING -o $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
+$IPTABLES --table mangle -A POSTROUTING -i $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
 
 
 echo "Default Policies Set"
@@ -179,7 +192,7 @@ then
     $IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_UDP_PORTS -j DROP
 fi
 
-#For FTP and SSH services, set control connections to "Minimum Delay" and FTP data to "Maximum Throughput".
+
 
 
 
