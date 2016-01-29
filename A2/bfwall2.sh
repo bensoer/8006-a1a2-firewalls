@@ -26,10 +26,7 @@ GATEWAY_IP="192.168.0.187"
 VALID_SSH_PORTS="1020:65535"
 
 VALID_TCP_DEST_PORTS="80,443,53,22"
-VALID_TCP_SRC_PORTS="80,443,53"
 
-
-VALID_UDP_SRC_PORTS=""
 VALID_UDP_DEST_PORTS="53"
 
 # Set to 1 to explicitly deny telnet port 23 from communicating through the firewall server
@@ -122,7 +119,8 @@ echo "Is Established Chain Created"
 $IPTABLES -A FORWARD -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
 $IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
 #INBOUND
-
+$IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
+$IPTABLES -A FORWARD -p tcp -i $IINTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
 
 echo "TCP Rules Configured"
 
