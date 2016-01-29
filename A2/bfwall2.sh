@@ -25,9 +25,14 @@ GATEWAY_IP="192.168.0.187"
 # Valid SSH Client Side Ports
 VALID_SSH_PORTS="1020:65535"
 
-VALID_TCP_DEST_PORTS="80,443,53,22"
+# valid tcp connections to internal
+VALID_TCP_INBOUND_PORTS="80,443,53,22"
+# valid tcp connections from internal
+VALID_TCP_OUTBOUND_PORTS="80,443,53,22"
 
+#valid udp connections to internal
 VALID_UDP_OUTBOUND_PORTS="53"
+#valid udp connections from internal
 VALID_UDP_INBOUND_PORTS=""
 
 # Set to 1 to explicitly deny telnet port 23 from communicating through the firewall server
@@ -137,12 +142,18 @@ echo "Explcit Denial of External Traffic Matching Internal Traffic IP's"
 $IPTABLES -N tcp_traffic
 
 #OUTBOUND
-$IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
-$IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
-
+if [ $VALID_TCP_OUTBOUND_PORTS != ""]
+then
+    $IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_OUTBOUND_PORTS -j is_new_and_established
+    $IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+fi
 #INBOUND
-$IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
-$IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+if [ $VALID_TCP_INBOUND_PORTS != "" ]
+then
+    $IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_INBOUND_PORTS -j is_new_and_established
+    $IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $VALID_TCP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+fi
+
 
 echo "TCP Traffic Chain Created"
 
@@ -157,11 +168,18 @@ echo "TCP Rules Configured"
 $IPTABLES -N udp_traffic
 
 #OUTBOUND
-$IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_OUTBOUND_PORTS -j is_new_and_established
-$IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+if [ $VALID_UDP_OUTBOUND_PORTS != ""]
+then
+    $IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_OUTBOUND_PORTS -j is_new_and_established
+    $IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+fi
 #INBOUND
-$IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_INBOUND_PORTS -j is_new_and_established
-$IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $VALID_UDP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+if [ $VALID_UDP_INBOUND_PORTS != ""]
+then
+    $IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_INBOUND_PORTS -j is_new_and_established
+    $IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $VALID_UDP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+fi
+
 
 echo "UDP Traffic Chain Created"
 
