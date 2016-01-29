@@ -91,14 +91,27 @@ $IPTABLES -A OUTPUT -o $ILOOPBACK -j ACCEPT
 
 echo "Loopback Policy Complete"
 
+$IPTABLES -N is_new_and_established
+$IPTABLES -A is_new_and_established -p tcp -m state --state NEW,ESTABLISHED -j ACCEPT
+$IPTABLES -A is_new_and_established -p udp -m state --state NEW,ESTABLISHED -j ACCEPT
+
+echo "Is New And Established Chain Created"
+
+$IPTABLES -N is_established
+$IPTABLES -A is__established -p tcp -m state --state ESTABLISHED -j ACCEPT
+$IPTABLES -A is_established -p udp -m state --state ESTABLISHED -j ACCEPT
+
+echo "Is Established Chain Created"
+
+
 # Do not accept any packets with a source address from the outside matching your internal network
 #$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
 
 # Inbound/Outbound TCP packets on allowed ports
 
 #$IPTABLES -A FORWARD -p tcp ! --syn -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j ACCEPT
-$IPTABLES -A FORWARD -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -m state --state NEW,ESTABLISHED -j ACCEPT
-$IPTABLES -A FORWARD -p tcp -i $IEXTERNALL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -m state --state ESTABLISHED -j ACCEPT
+$IPTABLES -A FORWARD -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
+$IPTABLES -A FORWARD -p tcp -i $IEXTERNALL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS-j is_established
 
 
 
@@ -109,8 +122,8 @@ $IPTABLES -A FORWARD -p tcp -i $IEXTERNALL_NET -m multiport --source-ports $VALI
 #$IPTABLES -A FORWARD -p udp -m multiport --source-port $VALID_UDP_SRC_PORTS -m multiport --destination-port $VALID_UDP_DEST_PORTS -j ACCEPT
 #$IPTABLES -A FORWARD -p udp -m multiport --destination-port $VALID_UDP_PORTS -j ACCEPT
 
-$IPTABLES -A FORWARD -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_DEST_PORTS -m state --state NEW,ESTABLISHED -j ACCEPT
-$IPTABLES -A FORWARD -p udp -i $IEXTERNALL_NET -m multiport --source-ports $VALID_UDP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -m state --state NEW,ESTABLISHED -j ACCEPT
+$IPTABLES -A FORWARD -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_DEST_PORTS -j is_new_and_established
+$IPTABLES -A FORWARD -p udp -i $IEXTERNALL_NET -m multiport --source-ports $VALID_UDP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
 
 # Inbound/Outbound ICMP packets based on type numbers
 #for i in $VALID_ICMP_NUMBERS
