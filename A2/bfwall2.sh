@@ -79,7 +79,7 @@ $IPTABLES --policy FORWARD DROP
 #masquerade data going out the external card
 $IPTABLES --table nat --append POSTROUTING --out-interface $IEXTERNAL_NET -j MASQUERADE
 #route all data to the internal system
-$IPTABLES --table nat -A PREROUTING -i $IINTERNAL_NET -j DNAT --to-destination $INTERNAL_IP
+$IPTABLES --table nat -A PREROUTING -i $IEXTERNAL_NET -j DNAT --to-destination $INTERNAL_IP
 #$IPTABLES --append FORWARD --in-interface $IINTERNAL_NET -j ACCEPT  
 
 
@@ -92,7 +92,7 @@ $IPTABLES -A OUTPUT -o $ILOOPBACK -j ACCEPT
 echo "Loopback Policy Complete"
 
 # Do not accept any packets with a source address from the outside matching your internal network
-$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
+#$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
 
 # Inbound/Outbound TCP packets on allowed ports
 
@@ -104,14 +104,14 @@ $IPTABLES -A FORWARD -p tcp -m multiport --source-port $UNPRIV_PORTS -m multipor
 #$IPTABLES -A FORWARD -p tcp -m multiport --destination-port $VALID_TCP_PORTS -j ACCEPT
 
 # Inbound/Outbound UDP packets on allowed ports
-$IPTABLES -A FORWARD -p udp -m multiport --source-port $VALID_UDP_SRC_PORTS -m multiport --destination-port $VALID_UDP_DEST_PORTS -j ACCEPT
+#$IPTABLES -A FORWARD -p udp -m multiport --source-port $VALID_UDP_SRC_PORTS -m multiport --destination-port $VALID_UDP_DEST_PORTS -j ACCEPT
 #$IPTABLES -A FORWARD -p udp -m multiport --destination-port $VALID_UDP_PORTS -j ACCEPT
 
 # Inbound/Outbound ICMP packets based on type numbers
-for i in $VALID_ICMP_NUMBERS
-do
-    $IPTABLES -A FORWARD -p icmp --icmp-type $i -j ACCEPT
-done
+#for i in $VALID_ICMP_NUMBERS
+#do
+#    $IPTABLES -A FORWARD -p icmp --icmp-type $i -j ACCEPT
+#done
 
 # You must ensure the you reject those connections that are coming the “wrong” way (i.e., inbound SYN packets to high ports).
 
