@@ -32,6 +32,15 @@ VALID_TCP_SRC_PORTS="80,443,53"
 VALID_UDP_SRC_PORTS=""
 VALID_UDP_DEST_PORTS="53"
 
+# Set to 1 to explicitly deny telnet port 23 from communicating through the firewall server
+NOTELNET=1
+# Set to 1 to explicitly drop any packets with a SYN and FIN flags enabled
+DROPSYNFIN=1
+# Set to 1 to explicitly drop packets from the EXPLICIT_INVALID_TCP_PORTS and EXPLICIT_INVALID_UDP_PORTS list
+PORTBLOCK=1
+EXPLICIT_INVALID_TCP_PORTS="32768:32775,137:139,111,515"
+EXPLICIT_INVALID_UDP_PORTS="32768:32775,137:139"
+
 # use bash array syntax: ( 8 12 16 )
 VALID_ICMP_NUMBERS=()
 
@@ -80,8 +89,7 @@ $IPTABLES --policy FORWARD DROP
 $IPTABLES --table nat --append POSTROUTING --out-interface $IEXTERNAL_NET -j MASQUERADE
 #route all data to the internal system
 $IPTABLES --table nat -A PREROUTING -i $IEXTERNAL_NET -j DNAT --to-destination $INTERNAL_IP
-#$IPTABLES --append FORWARD --in-interface $IINTERNAL_NET -j ACCEPT  
-
+echo "> NAT Connections Configured"
 
 
 echo "Default Policies Set"
@@ -98,7 +106,7 @@ $IPTABLES -A is_new_and_established -p udp -m state --state NEW,ESTABLISHED -j A
 echo "Is New And Established Chain Created"
 
 $IPTABLES -N is_established
-$IPTABLES -A is__established -p tcp -m state --state ESTABLISHED -j ACCEPT
+$IPTABLES -A is_established -p tcp -m state --state ESTABLISHED -j ACCEPT
 $IPTABLES -A is_established -p udp -m state --state ESTABLISHED -j ACCEPT
 
 echo "Is Established Chain Created"
@@ -108,43 +116,67 @@ echo "Is Established Chain Created"
 #$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
 
 # Inbound/Outbound TCP packets on allowed ports
+# Accept all TCP packets that belong to an existing connection (on allowed ports).
 
-#$IPTABLES -A FORWARD -p tcp ! --syn -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j ACCEPT
+#OUTBOUND
 $IPTABLES -A FORWARD -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -j is_new_and_established
-$IPTABLES -A FORWARD -p tcp -i $IEXTERNALL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS-j is_established
+$IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+#INBOUND
 
 
+echo "TCP Rules Configured"
 
 
 #$IPTABLES -A FORWARD -p tcp -m multiport --destination-port $VALID_TCP_PORTS -j ACCEPT
 
 # Inbound/Outbound UDP packets on allowed ports
-#$IPTABLES -A FORWARD -p udp -m multiport --source-port $VALID_UDP_SRC_PORTS -m multiport --destination-port $VALID_UDP_DEST_PORTS -j ACCEPT
-#$IPTABLES -A FORWARD -p udp -m multiport --destination-port $VALID_UDP_PORTS -j ACCEPT
 
+#OUTBOUND
 $IPTABLES -A FORWARD -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_DEST_PORTS -j is_new_and_established
 $IPTABLES -A FORWARD -p udp -i $IEXTERNALL_NET -m multiport --source-ports $VALID_UDP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+#INBOUND
+
+
+echo "UDP Rules Configured"
 
 # Inbound/Outbound ICMP packets based on type numbers
-#for i in $VALID_ICMP_NUMBERS
-#do
-#    $IPTABLES -A FORWARD -p icmp --icmp-type $i -j ACCEPT
-#done
+for i in $VALID_ICMP_NUMBERS
+do
+    $IPTABLES -A FORWARD -p icmp --icmp-type $i -j ACCEPT
+done
+
+echo "ICMP Rules Configured"
 
 # You must ensure the you reject those connections that are coming the “wrong” way (i.e., inbound SYN packets to high ports).
 
 # Accept fragments.
 
-#Accept all TCP packets that belong to an existing connection (on allowed ports).
 
+echo "Checking Whether to Block SYN or FIN"
 #Drop all TCP packets with the SYN and FIN bit set.
+if [ $DROPSYNFIN -eq 1 ]
+then
+    echo "Blocking SYN and FIN Packets"
+    $IPTABLES -A FORWARD -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP #more vague but will effect better
+fi
 
-
+echo "Checking Whether to Block Telnet Packets"
 #Do not allow Telnet packets at all.
-#$IPTABLES -A FORWARD -p tcp --source-port 23 -j DROP
-#$IPTABLES -A FORWARD -p tcp --destination-port 23 -j DROP
+if [ $NOTELNET -eq 1 ]
+then
+    echo "Blocking Telnet Packets"
+    $IPTABLES -A FORWARD -p tcp --source-port 23 -j DROP
+    $IPTABLES -A FORWARD -p tcp --destination-port 23 -j DROP
+fi
 
+echo "Checking Whether to Explicitly Block Ports"
 #Block all external traffic directed to ports 32768 – 32775, 137 – 139, TCP ports 111 and 515.
+if [ $PORTBLOCK -eq 1 ]
+then
+    echo "Blocking Explicit Ports"
+    $IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_TCP_PORTS -j DROP
+    $IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_UDP_PORTS -j DROP
+fi
 
 #For FTP and SSH services, set control connections to "Minimum Delay" and FTP data to "Maximum Throughput".
 
