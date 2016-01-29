@@ -142,7 +142,7 @@ echo "Explcit Denial of External Traffic Matching Internal Traffic IP's"
 $IPTABLES -N tcp_traffic
 
 #OUTBOUND
-if [ $VALID_TCP_OUTBOUND_PORTS != ""]
+if [ $VALID_TCP_OUTBOUND_PORTS != "" ]
 then
     $IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_OUTBOUND_PORTS -j is_new_and_established
     $IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
@@ -168,13 +168,13 @@ echo "TCP Rules Configured"
 $IPTABLES -N udp_traffic
 
 #OUTBOUND
-if [ $VALID_UDP_OUTBOUND_PORTS != ""]
+if [ "$VALID_UDP_OUTBOUND_PORTS" != "" ]
 then
     $IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_OUTBOUND_PORTS -j is_new_and_established
     $IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
 fi
 #INBOUND
-if [ $VALID_UDP_INBOUND_PORTS != ""]
+if [ "$VALID_UDP_INBOUND_PORTS" != "" ]
 then
     $IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_INBOUND_PORTS -j is_new_and_established
     $IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $VALID_UDP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
