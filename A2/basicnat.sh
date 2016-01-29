@@ -14,7 +14,7 @@ $IPTABLES --policy FORWARD DROP
 
 echo "basinat.sh > Set Default Policies to DROP"
 
-$IPTABLES --table nat --apend POSTROUTING --out-interface $IEXTERNAL_NET -j MASQUERADE
+$IPTABLES --table nat -A POSTROUTING --out-interface $IEXTERNAL_NET -j MASQUERADE
 
 $IPTABLES -A FORWARD --in-interface $IEXTERNAL_NET -j ACCEPT
 $IPTABLES -A FORWARD --in-interface $IINTERNAL_NET -j ACCEPT
