@@ -25,12 +25,12 @@ GATEWAY_IP="192.168.0.187"
 # Valid SSH Client Side Ports
 VALID_SSH_PORTS="1020:65535"
 
-VALID_TCP_DEST_PORTS="80,443"
-VALID_TCP_SRC_PORTS="80,443"
+VALID_TCP_DEST_PORTS="80,443,53"
+VALID_TCP_SRC_PORTS="80,443,53"
 
 
 VALID_UDP_SRC_PORTS=""
-VALID_UDP_DEST_PORTS=""
+VALID_UDP_DEST_PORTS="53"
 
 # use bash array syntax: ( 8 12 16 )
 VALID_ICMP_NUMBERS=()
@@ -96,8 +96,10 @@ echo "Loopback Policy Complete"
 
 # Inbound/Outbound TCP packets on allowed ports
 
-$IPTABLES -A FORWARD -p tcp ! --syn -m multiport --source-port $VALID_TCP_DEST_PORTS -m multiport --destination-port $UNPRIV_PORTS -j ACCEPT
-$IPTABLES -A FORWARD -p tcp -m multiport --source-port $UNPRIV_PORTS -m multiport --destination-port $VALID_TCP_DEST_PORTS -j ACCEPT
+#$IPTABLES -A FORWARD -p tcp ! --syn -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j ACCEPT
+$IPTABLES -A FORWARD -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_DEST_PORTS -m state --state NEW,ESTABLISHED -j ACCEPT
+$IPTABLES -A FORWARD -p tcp -i $IEXTERNALL_NET -m multiport --source-ports $VALID_TCP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -m state --state ESTABLISHED -j ACCEPT
+
 
 
 
@@ -106,6 +108,9 @@ $IPTABLES -A FORWARD -p tcp -m multiport --source-port $UNPRIV_PORTS -m multipor
 # Inbound/Outbound UDP packets on allowed ports
 #$IPTABLES -A FORWARD -p udp -m multiport --source-port $VALID_UDP_SRC_PORTS -m multiport --destination-port $VALID_UDP_DEST_PORTS -j ACCEPT
 #$IPTABLES -A FORWARD -p udp -m multiport --destination-port $VALID_UDP_PORTS -j ACCEPT
+
+$IPTABLES -A FORWARD -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_DEST_PORTS -m state --state NEW,ESTABLISHED -j ACCEPT
+$IPTABLES -A FORWARD -p udp -i $IEXTERNALL_NET -m multiport --source-ports $VALID_UDP_DEST_PORTS -m multiport --destination-ports $UNPRIV_PORTS -m state --state NEW,ESTABLISHED -j ACCEPT
 
 # Inbound/Outbound ICMP packets based on type numbers
 #for i in $VALID_ICMP_NUMBERS
