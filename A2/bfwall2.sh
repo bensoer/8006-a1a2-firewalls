@@ -96,15 +96,15 @@ $IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
 
 # Inbound/Outbound TCP packets on allowed ports
 
-$IPTABLES -A FORWARD -p tcp -m multiport ! --syn --source-port $VALID_TCP_DEST_PORTS --destination-port $UNPRIV_PORTS -j ACCEPT
-$IPTABLES -A FORWARD -p tcp -m multiport --source-port $UNPRIV_PORTS --destination-port $VALID_TCP_DEST_PORTS -j ACCEPT
+$IPTABLES -A FORWARD -p tcp ! --syn -m multiport --source-port $VALID_TCP_DEST_PORTS -m multiport --destination-port $UNPRIV_PORTS -j ACCEPT
+$IPTABLES -A FORWARD -p tcp -m multiport --source-port $UNPRIV_PORTS -m multiport --destination-port $VALID_TCP_DEST_PORTS -j ACCEPT
 
 
 
 #$IPTABLES -A FORWARD -p tcp -m multiport --destination-port $VALID_TCP_PORTS -j ACCEPT
 
 # Inbound/Outbound UDP packets on allowed ports
-$IPTABLES -A FORWARD -p udp -m multiport --source-port $VALID_UDP_SRC_PORTS --destination-port $VALID_UDP_DEST_PORTS -j ACCEPT
+$IPTABLES -A FORWARD -p udp -m multiport --source-port $VALID_UDP_SRC_PORTS -m multiport --destination-port $VALID_UDP_DEST_PORTS -j ACCEPT
 #$IPTABLES -A FORWARD -p udp -m multiport --destination-port $VALID_UDP_PORTS -j ACCEPT
 
 # Inbound/Outbound ICMP packets based on type numbers
