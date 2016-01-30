@@ -33,7 +33,7 @@ VALID_TCP_OUTBOUND_PORTS="80,443,53,22,21"
 #valid udp connections to internal
 VALID_UDP_OUTBOUND_PORTS="53"
 #valid udp connections from internal
-VALID_UDP_INBOUND_PORTS=""
+VALID_UDP_INBOUND_PORTS="53"
 
 # Set to 1 to explicitly deny telnet port 23 from communicating through the firewall server
 NOTELNET=1
