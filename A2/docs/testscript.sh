@@ -18,3 +18,37 @@ then
     echo "Now Executing testfrominternal Tests"
     ./testfrominternal.sh
 fi
+
+
+
+comments="
+
+-- NOTES --
+
+Can't automate tests for:
+OI_T1
+OI_T2
+
+IE_T2
+
+TOS_T1
+TOS_T2
+TOS_T3
+TOS_T4
+TOS_T5
+TOS_T6
+TOS_T7
+TOS_T8
+
+We have some automation for this but its not reliable/useful
+UDP_T1
+UDP_T2
+UDP_T3
+UDP_T4
+
+
+
+
+
+
+"
