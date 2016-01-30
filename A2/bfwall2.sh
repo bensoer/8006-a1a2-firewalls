@@ -239,8 +239,9 @@ echo "ICMP Rules Configured"
 
 
 # Accept fragments
-$IPTABLES -A FORWARD -p udp --fragment -j ACCEPT
-$IPTABLES -A FORWARD -p tcp --fragment -j ACCEPT
+# Don't need rules for fragments. we accept them anyway
+#$IPTABLES -A FORWARD -p udp --fragment -j ACCEPT
+#$IPTABLES -A FORWARD -p tcp --fragment -j ACCEPT
 
 
 
