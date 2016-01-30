@@ -49,14 +49,13 @@ FTP_DATA_PORTS="20"
 # use bash array syntax: ( 8 12 16 )
 VALID_ICMP_NUMBERS=(8 0)
 
+echo "User Defined Variables Defined"
+
+# Implementation Section
+
 # --  IPTABLES  --
 
 IPTABLES="/sbin/iptables"
-
-echo "User Defined Variables Defined"
-
-
-# Implementation Section
 
 BROADCAST_SRC="0.0.0.0"
 BROADCAST_DEST="255.255.255.255"
@@ -89,6 +88,10 @@ $IPTABLES --policy FORWARD DROP
 # -- No mangle needed, this intercepts data, dropping here will drop it in between
 #$IPTABLES -t mangle --policy PREROUTING DROP
 #$IPTABLES -t mangle --policy OUTPUT DROP
+
+# Do not accept any packets with a source address from the outside matching your internal network
+$IPTABLES -A PREROUTING -i $IEXTERNAL_NET -s $INTERNAL_IP -j DROP #OI_T1
+$IPTABLES -A PREROUTING -i $IEXTERNAL_NET -s $GATEWAY_INTERNAL_IP -j DROP #OI_T2
 
 #masquerade data going out the external card
 $IPTABLES --table nat --append POSTROUTING --out-interface $IEXTERNAL_NET -j MASQUERADE
@@ -132,9 +135,7 @@ echo "Is Established Chain Created"
 
 # -- EXPLICIT DENIALS --
 
-# Do not accept any packets with a source address from the outside matching your internal network
-$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP #OI_T1
-$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $GATEWAY_INTERNAL_IP -j DROP #OI_T2
+
 
 echo "Explcit Denial of External Traffic Matching Internal Traffic IP's"
 
