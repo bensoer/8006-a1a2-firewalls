@@ -89,10 +89,6 @@ $IPTABLES --policy FORWARD DROP
 #$IPTABLES -t mangle --policy PREROUTING DROP
 #$IPTABLES -t mangle --policy OUTPUT DROP
 
-# Do not accept any packets with a source address from the outside matching your internal network
-$IPTABLES --table nat -A PREROUTING -i $IEXTERNAL_NET -s $INTERNAL_IP -j DROP #OI_T1
-$IPTABLES --table nat -A PREROUTING -i $IEXTERNAL_NET -s $GATEWAY_INTERNAL_IP -j DROP #OI_T2
-
 #masquerade data going out the external card
 $IPTABLES --table nat --append POSTROUTING --out-interface $IEXTERNAL_NET -j MASQUERADE
 #route all data to the internal system
@@ -138,6 +134,9 @@ echo "Is Established Chain Created"
 
 
 echo "Explcit Denial of External Traffic Matching Internal Traffic IP's"
+# Do not accept any packets with a source address from the outside matching your internal network
+$IPTABLES -A FORWARD -i $IEXTERNAL_NET -s $INTERNAL_IP -j DROP #OI_T1
+$IPTABLES -A FORWARD -i $IEXTERNAL_NET -s $GATEWAY_INTERNAL_IP -j DROP #OI_T2
 
 
 echo "Checking Whether to Block SYN or FIN"
