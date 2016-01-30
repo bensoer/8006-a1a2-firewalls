@@ -23,6 +23,8 @@ echo " -INTERNAL_IP: $INTERNAL_IP"
 echo "============================================"
 echo " ** NOW EXECUTING ** "
 
+
+echo " Executing TCP Traffic Tests. This Will Test test rules in the tcp_traffic chain. See TCP_T1, TCP_T2 to check any unexpected results"
 # TCP SYN TESTS
 for PORT in ${OPEN_TCP_PORTS[@]}
 do
@@ -33,14 +35,14 @@ do
 	SENT=$($HPING3 $GATEWAY_IP -k -S -p $PORT -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 	RECIEVED=$($HPING3 $GATEWAY_IP -k -S -p $PORT -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
-	echo $SENT
-	echo $RECIEVED
+	#echo $SENT
+	#echo $RECIEVED
 
 	if [ $SENT -eq $RECIEVED ]
 	then
-		echo "PASS - TCP SYN Request to PORT: $PORT Got Through"
+		echo "PASS - TCP SYN Request to PORT: $PORT Got Through. Port is Open"
 	else
-		echo "FAIL - TCP SYN Request to PORT: $PORT Did Not Get Through"
+		echo "FAIL - TCP SYN Request to PORT: $PORT Did Not Get Through. Port is Closed"
 	fi
 
 done
@@ -55,14 +57,14 @@ do
 	SENT=$($HPING3 $GATEWAY_IP -k -SA -s $PORT -p 1035 -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 	RECIEVED=$($HPING3 $GATEWAY_IP -k -SA -s $PORT -p 1035 -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
-	echo $SENT
-	echo $RECIEVED
+	#echo $SENT
+	#echo $RECIEVED
 
 	if [ $SENT -eq $RECIEVED ]
 	then
-		echo "PASS - TCP SYNACK Request to PORT: $PORT Got Through"
+		echo "FAIL - TCP SYNACK Request to PORT: $PORT Got Through - There Is A Bug in the state chain or tcp_traffic. See Rules: IE_T1,TCP_T2. Possibly: NAE_T1, NAE_T2"
 	else
-		echo "FAIL - TCP SYNACK Request to PORT: $PORT Did Not Get Through - Stateful Routing Is Working"
+		echo "PASS - TCP SYNACK Request to PORT: $PORT Did Not Get Through - Stateful Routing Is Working"
 	fi
 
 done
@@ -77,14 +79,14 @@ do
 	SENT=$($HPING3 $GATEWAY_IP -k -SA -s $PORT -p $PORT -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 	RECIEVED=$($HPING3 $GATEWAY_IP -k -SA -s $PORT -p $PORT -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
-	echo $SENT
-	echo $RECIEVED
+	#echo $SENT
+	#echo $RECIEVED
 
 	if [ $SENT -eq $RECIEVED ]
 	then
-		echo "PASS - TCP SAMEPORT Request to PORT: $PORT Got Through"
+		echo "FAIL - TCP SAMEPORT Request to PORT: $PORT Got Through. tcp_traffic chain Ports are not Filtering Correctly. See Rules: TCP_T1, TCP_T2"
 	else
-		echo "FAIL - TCP SAMEPORT Request to PORT: $PORT Did Not Get Through"
+		echo "PASS - TCP SAMEPORT Request to PORT: $PORT Did Not Get Through. This is Expected"
 	fi
 
 done
@@ -99,14 +101,14 @@ do
 	SENT=$($HPING3 $GATEWAY_IP -k -S -s $PORT -p 1035 -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 	RECIEVED=$($HPING3 $GATEWAY_IP -k -S -s $PORT -p 1035 -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
-	echo $SENT
-	echo $RECIEVED
+	#echo $SENT
+	#echo $RECIEVED
 
 	if [ $SENT -eq $RECIEVED ]
 	then
-		echo "PASS - TCP HIGHSYN Request to PORT: $PORT Got Through"
+		echo "FAIL - TCP HIGHSYN Request to PORT: $PORT Got Through. tcp_traffic chain Backwards Calls Are Getting Through. See Rules: TCP_T1, TCP_T2"
 	else
-		echo "FAIL - TCP HIGHSYN Request to PORT: $PORT Did Not Get Through - Drop of Backwards Calls is Working"
+		echo "PASS - TCP HIGHSYN Request to PORT: $PORT Did Not Get Through - Drop of Backwards Calls is Working"
 	fi
 
 done
@@ -121,14 +123,14 @@ do
 	SENT=$($HPING3 $GATEWAY_IP -k -SF -p $PORT -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 	RECIEVED=$($HPING3 $GATEWAY_IP -k -SF -p $PORT -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
-	echo $SENT
-	echo $RECIEVED
+	#echo $SENT
+	#echo $RECIEVED
 
 	if [ $SENT -eq $RECIEVED ]
 	then
-		echo "PASS - TCP SYNFIN Request to PORT: $PORT Got Through"
+		echo "DROP - TCP SYNFIN Request to PORT: $PORT Got Through. SYNFIN Packets are Getting through. See Rules: SYNFIN_T1"
 	else
-		echo "FAIL - TCP SYNFIN Request to PORT: $PORT Did Not Get Through - Explcite SYNFIN DROP is Working"
+		echo "PASS - TCP SYNFIN Request to PORT: $PORT Did Not Get Through - Explcite SYNFIN DROP is Working"
 	fi
 
 done
@@ -140,17 +142,18 @@ RECIEVED=""
 SENT=$($HPING3 $GATEWAY_IP -k -S -s 3206 -p 1035 -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 RECIEVED=$($HPING3 $GATEWAY_IP -k -S -s 3206 -p 1035 -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
-echo $SENT
-echo $RECIEVED
+#echo $SENT
+#echo $RECIEVED
 
 if [ $SENT -eq $RECIEVED ]
 then
-	echo "PASS - TCP HIGHDESTSRCSYN Request Got Through"
+	echo "FAIL - TCP HIGHDESTSRCSYN Request Got Through. See Rules: TCP_T1, TCP_T2"
 else
-	echo "FAIL - TCP HIGHDESTSRCSYN Request Did Not Get Through - Drop of Obscure Calls is Working"
+	echo "PASS - TCP HIGHDESTSRCSYN Request Did Not Get Through - Drop of Obscure Calls is Working"
 fi
 
 
+echo "Now Testing UDP Ports. This will test conditions on the udp_traffic chain. See UDP_T1 and UDP_T2 to check any unexpected results"
 
 #UDP SYN TESTS
 for PORT in ${OPEN_UDP_PORTS[@]}
@@ -162,17 +165,19 @@ do
 	SENT=$($HPING3 $GATEWAY_IP -k --udp -p $PORT -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 	RECIEVED=$($HPING3 $GATEWAY_IP -k --udp -p $PORT -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
-	echo $SENT
-	echo $RECIEVED
+	#echo $SENT
+	#echo $RECIEVED
 
 	if [ $SENT -eq $RECIEVED ]
 	then
-		echo "PASS - UDP Request to PORT: $PORT Got Through"
+		echo "PASS - UDP Request to PORT: $PORT Got Through. Port is Open"
 	else
 		echo "FAIL - UDP Request to PORT: $PORT Did Not Get Through. This is UDP Though...it has no response"
 	fi
 
 done
+
+echo "Now Testing ICMP. This will test conditions on the icmp_traffic chain. See ICMP_T1 to check any unexpected results"
 
 #ICMP TESTS
 for TYPE in ${ICMP_TYPES[@]}
@@ -186,8 +191,8 @@ do
 	SENT=$($HPING3 $GATEWAY_IP -k --icmp --icmptype $TYPE -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 	RECIEVED=$($HPING3 $GATEWAY_IP -k --icmp --icmptype $TYPE -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
-	echo $SENT
-	echo $RECIEVED
+	#echo $SENT
+	#echo $RECIEVED
 
 	if [ "$SENT" == "$RECIEVED" ]
 	then
@@ -199,6 +204,9 @@ do
 
 done
 
+echo "Now Executing Generic Tests:"
+
+echo "Executing Generic DNS Check Test. This should test UDP_T1, UDP_T2 but may very if the port has been closed"
 
 SENT=""
 RECIEVED=""
@@ -233,6 +241,8 @@ fi
 SENT=""
 RECIEVED=""
 
+echo "Now Executing Telnet Tests."
+
 #TELNET_T1
 SENT=$($HPING3 $GATEWAY_IP -k -S -p 23 -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 RECIEVED=$($HPING3 $GATEWAY_IP -k -S -p 23 -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
@@ -241,7 +251,7 @@ if [ $SENT -ne $RECIEVED ]
 	then
 		echo "PASS - TELNET_T1 - Could Not Get Through"
 	else
-		echo "FAIL - TELNET_T1 - Could Get Through"
+		echo "FAIL - TELNET_T1 - Could Get Through. See TELNET_T2"
 fi
 
 SENT=""
@@ -255,7 +265,7 @@ if [ $SENT -ne $RECIEVED ]
 	then
 		echo "PASS - TELNET_T2 - Could Not Get Through"
 	else
-		echo "FAIL - TELNET_T3 - Could Get Through"
+		echo "FAIL - TELNET_T3 - Could Get Through. See TELNET_T1"
 fi
 
 SENT=""
@@ -269,8 +279,10 @@ if [ $SENT -ne $RECIEVED ]
 	then
 		echo "PASS - TELNET_T3 - Could Not Get Through"
 	else
-		echo "FAIL - TELNET_T3 - Could Get Through"
+		echo "FAIL - TELNET_T3 - Could Get Through. See TELNET_T1, TELNET_T2"
 fi
+
+echo "Now Testing Explicitly Blocked TCP Ports."
 
 #TCP EXTERNAL TRAFFIC BLOCK ON SPECIFIC PORTS
 #Block all external traffic directed to ports 32768 – 32775, 137 – 139, TCP ports 111 and 515.
@@ -283,18 +295,20 @@ do
 	SENT=$($HPING3 $GATEWAY_IP -k -S -p $PORT -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 	RECIEVED=$($HPING3 $GATEWAY_IP -S -k -p $PORT-c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
-	echo $SENT
-	echo $RECIEVED
+	#echo $SENT
+	#echo $RECIEVED
 
 	if [ "$SENT" == "$RECIEVED" ]
 	then
-		echo "PASS - TCP SYN REQUEST to PORT: $PORT Got Through"
+		echo "PASS - TCP SYN REQUEST to PORT: $PORT Got Through. See EXPDR_T1"
 	else
 		echo "FAIL - TCP SYN REQUEST to PORT: $PORT Did Not Get Through - Explicit Block Working"
 	fi
 
 
 done
+
+echo "Now Testing Explicitly Blocked UDP Ports."
 
 #UDP EXTERNAL TRAFFIC BLOCK ON SPECIFIC PORTS
 #Block all external traffic directed to ports 32768 – 32775, 137 – 139, TCP ports 111 and 515.
@@ -307,18 +321,20 @@ do
 	SENT=$($HPING3 $GATEWAY_IP -k --udp -p $PORT -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 	RECIEVED=$($HPING3 $GATEWAY_IP --udp -k -p $PORT-c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
-	echo $SENT
-	echo $RECIEVED
+	#echo $SENT
+	#echo $RECIEVED
 
 	if [ "$SENT" == "$RECIEVED" ]
 	then
-		echo "PASS - UDP SYN REQUEST to PORT: $PORT Got Through"
+		echo "PASS - UDP SYN REQUEST to PORT: $PORT Got Through. See EXPDR_T2"
 	else
 		echo "FAIL - UDP SYN REQUEST to PORT: $PORT Did Not Get Through - Explicit Block Working"
 	fi
 
 
 done
+
+echo "Now Testing Fragment Data."
 
 #FRAGMENTS TEST
 for PORT in ${OPEN_TCP_PORTS[@]}
@@ -329,14 +345,14 @@ do
 	SENT=$($HPING3 $GATEWAY_IP -k --frag -S -p $PORT -c 3 --data 2000 2>&1| grep "3 packets" | awk '{print $1 }')
 	RECIEVED=$($HPING3 $GATEWAY_IP -k --frag -S -p $PORT -c 3 --data 2000 2>&1| grep "3 packets" | awk '{print $4 }')
 
-	echo $SENT
-	echo $RECIEVED
+	#echo $SENT
+	#echo $RECIEVED
 
 	if [ $SENT -eq $RECIEVED ]
 	then
 		echo "PASS - TCP FRAGMENT Request to PORT: $PORT Got Through"
 	else
-		echo "FAIL - TCP FRAGMENT Request to PORT: $PORT Did Not Get Through"
+		echo "FAIL - TCP FRAGMENT Request to PORT: $PORT Did Not Get Through. See TCP_T1, TCP_T2"
 	fi
 
 done

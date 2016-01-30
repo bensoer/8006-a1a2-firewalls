@@ -33,7 +33,7 @@ VALID_TCP_OUTBOUND_PORTS="80,443,53,22,21"
 #valid udp connections to internal
 VALID_UDP_OUTBOUND_PORTS="53"
 #valid udp connections from internal
-VALID_UDP_INBOUND_PORTS=""
+VALID_UDP_INBOUND_PORTS="53"
 
 # Set to 1 to explicitly deny telnet port 23 from communicating through the firewall server
 NOTELNET=1
@@ -49,14 +49,13 @@ FTP_DATA_PORTS="20"
 # use bash array syntax: ( 8 12 16 )
 VALID_ICMP_NUMBERS=(8 0)
 
+echo "User Defined Variables Defined"
+
+# Implementation Section
+
 # --  IPTABLES  --
 
 IPTABLES="/sbin/iptables"
-
-echo "User Defined Variables Defined"
-
-
-# Implementation Section
 
 BROADCAST_SRC="0.0.0.0"
 BROADCAST_DEST="255.255.255.255"
@@ -99,15 +98,15 @@ echo "Default Policies Set"
 
 
 #For FTP and SSH services, set control connections to "Minimum Delay" and FTP data to "Maximum Throughput".
-$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET --destination-port 22 -j TOS --set-tos minimize-delay
-$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET --destination-port 22 -j TOS --set-tos minimize-delay
-$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET --source-port 22 -j TOS --set-tos minimize-delay
-$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET --source-port 22 -j TOS --set-tos minimize-delay
+$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET --destination-port 22 -j TOS --set-tos minimize-delay #TOS_T1
+$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET --destination-port 22 -j TOS --set-tos minimize-delay #TOS_T2
+$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET --source-port 22 -j TOS --set-tos minimize-delay #TOS_T3
+$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET --source-port 22 -j TOS --set-tos minimize-delay #TOS_T4
 
-$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET -m multiport --destination-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
-$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET -m multiport --destination-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
-$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
-$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput
+$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET -m multiport --destination-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput #TOS_T5
+$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET -m multiport --destination-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput #TOS_T6
+$IPTABLES --table mangle -A PREROUTING -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput #TOS_T7
+$IPTABLES --table mangle -A POSTROUTING -p tcp -o $IEXTERNAL_NET -m multiport --source-ports $FTP_DATA_PORTS -j TOS --set-tos maximize-throughput #TOS_T8
 
 echo "TOS Rules Configured"
 
@@ -118,25 +117,26 @@ $IPTABLES -A OUTPUT -o $ILOOPBACK -j ACCEPT
 echo "Loopback Policy Complete"
 
 $IPTABLES -N is_new_and_established
-$IPTABLES -A is_new_and_established -p tcp -m state --state NEW,ESTABLISHED -j ACCEPT
-$IPTABLES -A is_new_and_established -p udp -m state --state NEW,ESTABLISHED -j ACCEPT
+$IPTABLES -A is_new_and_established -p tcp -m state --state NEW,ESTABLISHED -j ACCEPT #NAE_T1
+$IPTABLES -A is_new_and_established -p udp -m state --state NEW,ESTABLISHED -j ACCEPT #NAE_T2
 
 echo "Is New And Established Chain Created"
 
 $IPTABLES -N is_established
-$IPTABLES -A is_established -p tcp -m state --state ESTABLISHED -j ACCEPT
-$IPTABLES -A is_established -p udp -m state --state ESTABLISHED -j ACCEPT
+$IPTABLES -A is_established -p tcp -m state --state ESTABLISHED -j ACCEPT #IE_T1
+$IPTABLES -A is_established -p udp -m state --state ESTABLISHED -j ACCEPT #IE_T2
 
 echo "Is Established Chain Created"
 
 
 # -- EXPLICIT DENIALS --
 
-# Do not accept any packets with a source address from the outside matching your internal network
-$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $INTERNAL_IP -j DROP
-$IPTABLES -A FORWARD -i $IEXTERNAL_NET -o $IINTERNAL_NET -s $GATEWAY_INTERNAL_IP -j DROP
+
 
 echo "Explcit Denial of External Traffic Matching Internal Traffic IP's"
+# Do not accept any packets with a source address from the outside matching your internal network
+$IPTABLES -A FORWARD -i $IEXTERNAL_NET -s $INTERNAL_IP -j DROP #OI_T1
+$IPTABLES -A FORWARD -i $IEXTERNAL_NET -s $GATEWAY_INTERNAL_IP -j DROP #OI_T2
 
 
 echo "Checking Whether to Block SYN or FIN"
@@ -144,7 +144,7 @@ echo "Checking Whether to Block SYN or FIN"
 if [ $DROPSYNFIN -eq 1 ]
 then
     echo "Blocking SYN and FIN Packets"
-    $IPTABLES -A FORWARD -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP #more vague but will effect better
+    $IPTABLES -A FORWARD -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP #SYNFIN_T1
 fi
 
 echo "Checking Whether to Block Telnet Packets"
@@ -152,8 +152,8 @@ echo "Checking Whether to Block Telnet Packets"
 if [ $NOTELNET -eq 1 ]
 then
     echo "Blocking Telnet Packets"
-    $IPTABLES -A FORWARD -p tcp --source-port 23 -j DROP
-    $IPTABLES -A FORWARD -p tcp --destination-port 23 -j DROP
+    $IPTABLES -A FORWARD -p tcp --source-port 23 -j DROP #TELNET_T1
+    $IPTABLES -A FORWARD -p tcp --destination-port 23 -j DROP #TELNET_T2
 fi
 
 echo "Checking Whether to Explicitly Block Ports"
@@ -161,8 +161,8 @@ echo "Checking Whether to Explicitly Block Ports"
 if [ $PORTBLOCK -eq 1 ]
 then
     echo "Blocking Explicit Ports"
-    $IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_TCP_PORTS -j DROP
-    $IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_UDP_PORTS -j DROP
+    $IPTABLES -A FORWARD -p tcp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_TCP_PORTS -j DROP #EXPDR_T1
+    $IPTABLES -A FORWARD -p udp -i $IEXTERNAL_NET -m multiport --destination-ports $EXPLICIT_INVALID_UDP_PORTS -j DROP # EXPDR_T2
 fi
 
 
@@ -176,14 +176,14 @@ $IPTABLES -N tcp_traffic
 #OUTBOUND
 if [ "$VALID_TCP_OUTBOUND_PORTS" != "" ]
 then
-    $IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_OUTBOUND_PORTS -j is_new_and_established
-    $IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+    $IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_OUTBOUND_PORTS -j is_new_and_established #TCP_T1
+    $IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_TCP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established #TCP_T2
 fi
 #INBOUND
 if [ "$VALID_TCP_INBOUND_PORTS" != "" ]
 then
-    $IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_INBOUND_PORTS -j is_new_and_established
-    $IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $VALID_TCP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+    $IPTABLES -A tcp_traffic -p tcp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_TCP_INBOUND_PORTS -j is_new_and_established #TCP_T3
+    $IPTABLES -A tcp_traffic -p tcp -i $IINTERNAL_NET -m multiport --source-ports $VALID_TCP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established #TCP_T4
 fi
 
 
@@ -204,14 +204,14 @@ $IPTABLES -N udp_traffic
 #OUTBOUND
 if [ "$VALID_UDP_OUTBOUND_PORTS" != "" ]
 then
-    $IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_OUTBOUND_PORTS -j is_new_and_established
-    $IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+    $IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_OUTBOUND_PORTS -j is_new_and_established #UDP_T1
+    $IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $VALID_UDP_OUTBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established #UDP_T2
 fi
 #INBOUND
 if [ "$VALID_UDP_INBOUND_PORTS" != "" ]
 then
-    $IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_INBOUND_PORTS -j is_new_and_established
-    $IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $VALID_UDP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established
+    $IPTABLES -A udp_traffic -p udp -i $IEXTERNAL_NET -m multiport --source-ports $UNPRIV_PORTS -m multiport --destination-ports $VALID_UDP_INBOUND_PORTS -j is_new_and_established #UDP_T3
+    $IPTABLES -A udp_traffic -p udp -i $IINTERNAL_NET -m multiport --source-ports $VALID_UDP_INBOUND_PORTS -m multiport --destination-ports $UNPRIV_PORTS -j is_established #UDP_T4
 fi
 
 
@@ -226,7 +226,7 @@ $IPTABLES -N icmp_traffic
 # Inbound/Outbound ICMP packets based on type numbers
 for TYPE in ${VALID_ICMP_NUMBERS[@]}
 do
-    $IPTABLES -A icmp_traffic -p icmp --icmp-type $TYPE -j ACCEPT
+    $IPTABLES -A icmp_traffic -p icmp --icmp-type $TYPE -j ACCEPT #ICMP_T1
 done
 
 echo "ICMP Taffic Chain Created"
