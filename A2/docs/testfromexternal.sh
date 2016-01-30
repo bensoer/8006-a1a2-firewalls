@@ -24,7 +24,7 @@ echo "============================================"
 echo " ** NOW EXECUTING ** "
 
 
-echo " Executing TCP Traffic Tests. This Will Test test rules in the tcp_traffic chain. See TCP_T1, TCP_T2 to check any unexpected results"
+echo " Executing TCP Traffic Tests. This Will Test test rules in the tcp_traffic chain. See TCP_T3, TCP_T4 to check any unexpected results"
 # TCP SYN TESTS
 for PORT in ${OPEN_TCP_PORTS[@]}
 do
@@ -62,7 +62,7 @@ do
 
 	if [ $SENT -eq $RECIEVED ]
 	then
-		echo "FAIL - TCP SYNACK Request to PORT: $PORT Got Through - There Is A Bug in the state chain or tcp_traffic. See Rules: IE_T1,TCP_T2. Possibly: NAE_T1, NAE_T2"
+		echo "FAIL - TCP SYNACK Request to PORT: $PORT Got Through - There Is A Bug in the state chain or tcp_traffic. See Rules: IE_T1,TCP_T4. Possibly: NAE_T1, NAE_T2"
 	else
 		echo "PASS - TCP SYNACK Request to PORT: $PORT Did Not Get Through - Stateful Routing Is Working"
 	fi
@@ -84,7 +84,7 @@ do
 
 	if [ $SENT -eq $RECIEVED ]
 	then
-		echo "FAIL - TCP SAMEPORT Request to PORT: $PORT Got Through. tcp_traffic chain Ports are not Filtering Correctly. See Rules: TCP_T1, TCP_T2"
+		echo "FAIL - TCP SAMEPORT Request to PORT: $PORT Got Through. tcp_traffic chain Ports are not Filtering Correctly. See Rules: TCP_T3, TCP_T4"
 	else
 		echo "PASS - TCP SAMEPORT Request to PORT: $PORT Did Not Get Through. This is Expected"
 	fi
@@ -106,7 +106,7 @@ do
 
 	if [ $SENT -eq $RECIEVED ]
 	then
-		echo "FAIL - TCP HIGHSYN Request to PORT: $PORT Got Through. tcp_traffic chain Backwards Calls Are Getting Through. See Rules: TCP_T1, TCP_T2"
+		echo "FAIL - TCP HIGHSYN Request to PORT: $PORT Got Through. tcp_traffic chain Backwards Calls Are Getting Through. See Rules: TCP_T3, TCP_T4"
 	else
 		echo "PASS - TCP HIGHSYN Request to PORT: $PORT Did Not Get Through - Drop of Backwards Calls is Working"
 	fi
@@ -243,7 +243,7 @@ RECIEVED=""
 
 echo "Now Executing Telnet Tests."
 
-#TELNET_T1
+#TELNET_T2
 SENT=$($HPING3 $GATEWAY_IP -k -S -p 23 -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 RECIEVED=$($HPING3 $GATEWAY_IP -k -S -p 23 -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
@@ -257,7 +257,7 @@ fi
 SENT=""
 RECIEVED=""
 
-#TELNET_T2
+#TELNET_T1
 SENT=$($HPING3 $GATEWAY_IP -k -SA -s 23 -p 1035 -c 3 2>&1| grep "3 packets" | awk '{print $1 }')
 RECIEVED=$($HPING3 $GATEWAY_IP -SA -k -s 23 -p 1035 -c 3 2>&1| grep "3 packets" | awk '{print $4 }')
 
@@ -352,7 +352,7 @@ do
 	then
 		echo "PASS - TCP FRAGMENT Request to PORT: $PORT Got Through"
 	else
-		echo "FAIL - TCP FRAGMENT Request to PORT: $PORT Did Not Get Through. See TCP_T1, TCP_T2"
+		echo "FAIL - TCP FRAGMENT Request to PORT: $PORT Did Not Get Through. See TCP_T3, TCP_T4"
 	fi
 
 done
